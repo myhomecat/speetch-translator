@@ -1,15 +1,20 @@
 # Speech Translator (실시간 음성 번역기)
 
-실시간 한국어-일본어 음성 번역 웹 애플리케이션입니다. Google Gemini 2.5 Flash Native Audio Live API를 사용하여 Speech-to-Speech 번역을 제공합니다.
+실시간 한국어-일본어 음성 번역 웹 애플리케이션입니다. Soniox API를 사용하여 실시간 STT + 번역 자막을 제공하고, 원본 음성을 상대방에게 전달합니다.
+
+**배포 URL**: https://www.pgchae.my
+
+**GitHub**: https://github.com/myhomecat/speetch-translator
 
 ## 주요 기능
 
-- **실시간 음성 번역**: 한국어 ↔ 일본어 양방향 음성 번역
-- **실시간 자막 (STT)**: 말하는 중에 실시간으로 텍스트 표시 (AssemblyAI)
+- **실시간 음성 전달**: 원본 음성을 상대방에게 그대로 전달
+- **실시간 자막 (STT + 번역)**: Soniox API로 실시간 텍스트 인식 및 번역
 - **다중 사용자 지원**: 최대 3명까지 동시 접속 가능한 채팅방
 - **자막 표시**: 원본 텍스트와 번역된 텍스트 실시간 표시
 - **번역 모드 선택**: 자동 감지 / 한→일 / 일→한 모드 선택
 - **오디오 파일 업로드**: 마이크 없이 오디오 파일로 테스트 가능
+- **HTTPS 지원**: Let's Encrypt SSL 인증서 적용
 
 ## 기술 스택
 
@@ -17,7 +22,8 @@
 - **Python 3.12+**
 - **FastAPI**: 비동기 웹 프레임워크
 - **WebSocket**: 실시간 양방향 통신
-- **Google Gemini API**: `google-genai` SDK
+- **Soniox API**: 실시간 STT + 번역
+- **Google Gemini API**: `google-genai` SDK (S2ST 모드용, 현재 미사용)
 - **Pydantic**: 데이터 검증
 
 ### Frontend
@@ -26,6 +32,11 @@
 - **TypeScript**: 타입 안전성
 - **Tailwind CSS 4**: 스타일링
 - **AudioWorklet API**: 오디오 캡처 및 처리
+
+### Infrastructure
+- **Nginx**: 리버스 프록시
+- **Let's Encrypt**: SSL 인증서
+- **도메인**: pgchae.my (가비아)
 
 ## 프로젝트 구조
 

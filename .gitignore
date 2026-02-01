@@ -7,6 +7,7 @@ frontend/.env.local
 
 # Test files with hardcoded keys
 backend/test_soniox.py
+backend/test_soniox_audio.py
 test_gemini_audio.py
 test_websocket.py
 

@@ -3,7 +3,7 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000
 
 export const AUDIO_CONFIG = {
   INPUT_SAMPLE_RATE: 16000,  // Client -> Server
-  OUTPUT_SAMPLE_RATE: 24000, // Server -> Client
+  OUTPUT_SAMPLE_RATE: 16000, // Server -> Client (원본 음성 그대로)
   CHANNELS: 1,
   BIT_DEPTH: 16,
 } as const;
