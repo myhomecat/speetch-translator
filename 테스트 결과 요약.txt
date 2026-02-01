@@ -1,0 +1,72 @@
+테스트 결과 요약 (2026-01-19 업데이트)
+=====================================
+
+## 해결된 문제들
+
+### 1. 버튼 클릭 문제 ✅ 해결
+- 문제: 숨겨진 <input type="file"> 요소 클릭이 안 됨
+- 해결: label-wrapped transparent input 방식으로 변경
+- 파일: frontend/src/components/AudioFileUpload.tsx
+
+### 2. m4a 파일 오류 ✅ 해결
+- 문제: 브라우저에서 m4a 파일 디코딩 실패
+- 해결: 사용자 친화적 오류 메시지 추가 ("WAV/MP3/OGG 형식을 사용해주세요")
+- 파일: frontend/src/components/AudioFileUpload.tsx
+
+### 3. WebSocket 타임아웃 ✅ 해결
+- 문제: Gemini 처리 중 keepalive ping timeout으로 연결 끊김
+- 해결:
+  - 20초 간격 keepalive ping/pong 메커니즘 추가
+  - callback refs로 재연결 방지
+  - React StrictMode 비활성화 (WebSocket 이중 연결 방지)
+- 파일:
+  - frontend/src/hooks/useWebSocket.ts
+  - backend/app/api/websocket.py
+  - frontend/next.config.ts
+
+### 4. 번역 미표시 문제 ✅ 해결
+- 문제: 번역이 표시되었다가 사라지고 채팅 기록에 남지 않음
+- 원인: realtime_transcript만 전송하고 transcript(영구 저장용)는 미전송
+- 해결: is_final=true일 때 TranscriptMessage도 함께 전송
+- 파일: backend/app/api/websocket.py
+
+## 현재 동작 상태
+
+### 실시간 마이크 번역 (주요 기능) ✅ 정상
+- 마이크로 말하면 실시간으로 번역 표시
+- 짧은 문장 단위로 번역 (Turn 기반) - 이것이 정상 동작
+- 번역 완료 시 채팅 기록에 영구 저장
+
+### 파일 업로드 테스트 ⚠️ 제한적
+- WAV/MP3/OGG 파일 업로드 가능
+- 긴 오디오 파일은 침묵 구간에서 Turn이 끊겨 짧은 조각만 인식됨
+- 이는 Gemini Live API의 특성 (실시간 대화용 설계)
+
+## 수정된 파일 목록
+
+1. frontend/src/components/AudioFileUpload.tsx
+   - hidden input → label-wrapped transparent input
+   - m4a 디코딩 실패 시 사용자 친화적 오류 메시지
+
+2. frontend/src/hooks/useWebSocket.ts
+   - 20초 간격 keepalive ping 추가
+   - callback refs로 재연결 루프 방지
+
+3. frontend/src/components/TranslatorRoom.tsx
+   - useEffect 의존성 배열 수정 (빈 배열로 변경)
+   - 실시간 자막 삭제 타임아웃 10초로 연장
+
+4. frontend/next.config.ts
+   - reactStrictMode: false (WebSocket 이중 연결 방지)
+
+5. backend/app/api/websocket.py
+   - ping/pong 핸들러 추가
+   - is_final=true일 때 TranscriptMessage 전송 추가
+
+## Gemini Live API 동작 원리
+
+- 실시간 스트리밍 방식 (Turn 기반)
+- 사용자가 말하고 잠시 멈추면 → Gemini가 번역 응답
+- 짧은 문장 단위 번역이 정상 동작
+- input_transcription: 원본 텍스트 (turn_complete 시점에만 제공)
+- output_transcription: 번역된 텍스트 (실시간 제공)

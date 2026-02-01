@@ -1,0 +1,52 @@
+# Environment files (API keys)
+.env
+.env.local
+.env*.local
+backend/.env
+frontend/.env.local
+
+# Test files with hardcoded keys
+backend/test_soniox.py
+test_gemini_audio.py
+test_websocket.py
+
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Build
+.next/
+dist/
+build/
+*.egg-info/
+
+# Large files
+google-cloud-sdk/
+google-cloud-cli-*.tar.gz
+*.tar.gz
+*.zip
+
+# ML Models (download separately)
+backend/models/
+models/
+
+# Test audio
+test_audio/
+
+# Logs
+*.log
+nohup.out
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
