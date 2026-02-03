@@ -8,13 +8,21 @@ export default function Home() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
   const [roomCode, setRoomCode] = useState("");
+  const [password, setPassword] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const CORRECT_PASSWORD = "1234";
+
   const handleCreateRoom = async () => {
     if (!userName.trim()) {
       setError("이름을 입력해주세요");
+      return;
+    }
+
+    if (password !== CORRECT_PASSWORD) {
+      setError("비밀번호가 틀렸습니다");
       return;
     }
 
@@ -40,6 +48,11 @@ export default function Home() {
   const handleJoinRoom = async () => {
     if (!userName.trim()) {
       setError("이름을 입력해주세요");
+      return;
+    }
+
+    if (password !== CORRECT_PASSWORD) {
+      setError("비밀번호가 틀렸습니다");
       return;
     }
 
@@ -100,6 +113,20 @@ export default function Home() {
               placeholder="표시될 이름을 입력하세요"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
               maxLength={20}
+            />
+          </div>
+
+          {/* Password Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              비밀번호
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="비밀번호를 입력하세요"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
             />
           </div>
 

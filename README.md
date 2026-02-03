@@ -13,8 +13,10 @@
 - **다중 사용자 지원**: 최대 3명까지 동시 접속 가능한 채팅방
 - **자막 표시**: 원본 텍스트와 번역된 텍스트 실시간 표시
 - **번역 모드 선택**: 자동 감지 / 한→일 / 일→한 모드 선택
-- **오디오 파일 업로드**: 마이크 없이 오디오 파일로 테스트 가능
 - **HTTPS 지원**: Let's Encrypt SSL 인증서 적용
+- **모바일 반응형 UI**: 하단 플로팅 마이크 버튼, 참가자 목록 토글
+- **비밀번호 보호**: 방 생성/참가 시 비밀번호 필요
+- **채팅 로그 저장**: JSON 형식으로 대화 내용 자동 저장
 
 ## 기술 스택
 
@@ -45,10 +47,10 @@ speetch-translator/
 ├── backend/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── websocket.py      # WebSocket 엔드포인트
+│   │   │   ├── websocket.py      # WebSocket 엔드포인트 + 채팅 로그 저장
 │   │   │   └── rooms.py          # 방 관리 REST API
 │   │   ├── core/
-│   │   │   ├── gemini_session.py # Gemini Live API 세션 관리
+│   │   │   ├── soniox_session.py # Soniox STT+번역 세션 관리
 │   │   │   ├── room_manager.py   # 방 상태 관리
 │   │   │   └── connection_manager.py # WebSocket 연결 관리
 │   │   ├── models/
@@ -59,18 +61,19 @@ speetch-translator/
 │   ├── .env                      # 환경 변수
 │   └── requirements.txt
 │
+├── chat-log/                     # 채팅 로그 저장 (날짜별 JSON)
+│   └── chat_YYYY-MM-DD.json
+│
 └── frontend/
     ├── src/
     │   ├── app/
-    │   │   ├── page.tsx          # 홈페이지 (방 생성/참가)
+    │   │   ├── page.tsx          # 홈페이지 (방 생성/참가 + 비밀번호)
     │   │   └── room/[roomId]/page.tsx  # 채팅방 페이지
     │   ├── components/
-    │   │   ├── TranslatorRoom.tsx    # 메인 번역 채팅방 컴포넌트
-    │   │   ├── AudioControls.tsx     # 녹음 버튼
-    │   │   ├── AudioFileUpload.tsx   # 오디오 파일 업로드
+    │   │   ├── TranslatorRoom.tsx    # 메인 번역 채팅방 (모바일 반응형)
     │   │   ├── LanguageSelector.tsx  # 번역 모드 선택
     │   │   ├── SubtitleDisplay.tsx   # 자막 표시
-    │   │   └── UserList.tsx          # 접속자 목록
+    │   │   └── UserList.tsx          # 접속자 목록 (토글 방식)
     │   ├── hooks/
     │   │   ├── useWebSocket.ts       # WebSocket 연결 관리
     │   │   ├── useAudioCapture.ts    # 마이크 오디오 캡처

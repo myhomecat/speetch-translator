@@ -1,7 +1,49 @@
 import json
 import logging
 import traceback
+import os
+from datetime import datetime
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
+# 채팅 로그 저장 경로
+CHAT_LOG_DIR = "/home/pgchae/바탕화면/speetch-translator/chat-log"
+
+def save_chat_log(room_id: str, user_name: str, original_text: str, original_language: str,
+                  translated_text: str, translated_language: str):
+    """채팅 로그를 JSON 파일에 저장"""
+    try:
+        # 날짜별 파일명
+        today = datetime.now().strftime("%Y-%m-%d")
+        log_file = os.path.join(CHAT_LOG_DIR, f"chat_{today}.json")
+
+        # 기존 로그 읽기
+        logs = []
+        if os.path.exists(log_file):
+            with open(log_file, "r", encoding="utf-8") as f:
+                try:
+                    logs = json.load(f)
+                except json.JSONDecodeError:
+                    logs = []
+
+        # 새 로그 추가
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "room_id": room_id,
+            "user_name": user_name,
+            "original_text": original_text,
+            "original_language": original_language,
+            "translated_text": translated_text,
+            "translated_language": translated_language
+        }
+        logs.append(log_entry)
+
+        # 파일에 저장
+        with open(log_file, "w", encoding="utf-8") as f:
+            json.dump(logs, f, ensure_ascii=False, indent=2)
+
+        print(f"[ChatLog] Saved: {user_name}: {original_text} -> {translated_text}")
+    except Exception as e:
+        print(f"[ChatLog] Error saving log: {e}")
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -152,6 +194,9 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                             room_id=room_id,
                             message=transcript_msg
                         )
+                        # 채팅 로그 저장
+                        save_chat_log(room_id, user_name, text or "(음성 입력)", source_lang,
+                                     translated_text, target_lang)
 
                 except Exception as e:
                     print(f"[WS] Soniox transcript error: {e}")
@@ -229,6 +274,9 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                             room_id=room_id,
                             message=transcript_msg
                         )
+                        # 채팅 로그 저장
+                        save_chat_log(room_id, user_name, text or "(음성 입력)", source_lang,
+                                     translated_text, target_lang)
                         print(f"[WS] Transcript message sent for permanent storage")
                 except Exception as e:
                     print(f"[WS] Broadcast error: {e}")
