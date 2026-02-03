@@ -5,8 +5,6 @@ import { v4 as uuidv4 } from "uuid";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useAudioCapture } from "@/hooks/useAudioCapture";
 import { useAudioPlayback } from "@/hooks/useAudioPlayback";
-import { AudioControls } from "./AudioControls";
-import { AudioFileUpload } from "./AudioFileUpload";
 import { LanguageSelector } from "./LanguageSelector";
 import { SubtitleDisplay } from "./SubtitleDisplay";
 import { UserList } from "./UserList";
@@ -31,6 +29,7 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<Map<string, RealtimeTranscript>>(new Map());
   const [error, setError] = useState<string | null>(null);
+  const [showParticipants, setShowParticipants] = useState(false);
 
   const { playAudio, stopPlayback } = useAudioPlayback();
 
@@ -270,10 +269,10 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex max-w-6xl mx-auto w-full p-6 gap-6 overflow-hidden">
+      {/* Main Content - 대화 내용이 전체 차지 */}
+      <div className="flex-1 min-h-0 flex flex-col max-w-6xl mx-auto w-full p-4 md:p-6 overflow-hidden relative pb-20">
         {/* Subtitle Area */}
-        <div className="flex-1 bg-white rounded-xl shadow-sm flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 bg-white rounded-xl shadow-sm flex flex-col overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100">
             <h2 className="font-medium text-gray-700">대화 내용</h2>
           </div>
@@ -284,30 +283,63 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
           />
         </div>
 
-        {/* Sidebar */}
-        <div className="w-72 flex flex-col gap-6">
-          {/* User List */}
-          <UserList users={users} currentUserId={userId} />
+        {/* 참가자 목록 팝업 */}
+        {showParticipants && (
+          <div className="absolute bottom-24 left-4 right-4 md:left-auto md:right-6 md:w-72 bg-white rounded-xl shadow-lg z-10">
+            <UserList users={users} currentUserId={userId} />
+          </div>
+        )}
+      </div>
 
-          {/* Audio Controls */}
-          <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col items-center gap-4">
-            <AudioControls
-              isRecording={isRecording}
-              isSpeaking={isSpeaking}
-              isConnected={isConnected}
-              onStartRecording={startRecording}
-              onStopRecording={handleStopRecording}
-            />
-            <div className="w-full border-t pt-4">
-              <p className="text-xs text-gray-500 text-center mb-2">
-                마이크 없이 테스트
-              </p>
-              <AudioFileUpload
-                onAudioData={handleAudioCapture}
-                onAudioStreamEnd={endAudioStream}
-                disabled={!isConnected || isRecording}
-              />
-            </div>
+      {/* 하단 고정 바 */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-20">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          {/* 참가자 토글 버튼 */}
+          <button
+            onClick={() => setShowParticipants(!showParticipants)}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors
+              ${showParticipants ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}
+            `}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+            </svg>
+            <span>{users.length}/3</span>
+          </button>
+
+          {/* 마이크 버튼 */}
+          <button
+            onClick={isRecording ? handleStopRecording : startRecording}
+            disabled={!isConnected}
+            className={`
+              w-16 h-16 rounded-full flex items-center justify-center transition-all transform
+              ${!isConnected
+                ? "bg-gray-300 cursor-not-allowed"
+                : isRecording
+                  ? "bg-red-500 hover:bg-red-600 scale-110 animate-pulse"
+                  : "bg-blue-500 hover:bg-blue-600 hover:scale-105"
+              }
+            `}
+          >
+            {isRecording ? (
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+            ) : (
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            )}
+          </button>
+
+          {/* 녹음 상태 표시 */}
+          <div className="w-20 text-center">
+            {isRecording && (
+              <span className={`text-sm font-medium ${isSpeaking ? "text-green-600" : "text-orange-500"}`}>
+                {isSpeaking ? "말하는 중..." : "대기 중..."}
+              </span>
+            )}
           </div>
         </div>
       </div>
