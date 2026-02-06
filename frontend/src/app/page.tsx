@@ -13,7 +13,7 @@ export default function Home() {
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const CORRECT_PASSWORD = "1234";
+  const CORRECT_PASSWORD = "arisa";
 
   const handleCreateRoom = async () => {
     if (!userName.trim()) {

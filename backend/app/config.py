@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # Soniox 설정
     use_soniox: bool = True  # True: Soniox + TTS, False: Gemini
-    soniox_model: str = "stt-rt-v3"
+    soniox_model: str = "stt-rt-v4"
 
     class Config:
         env_file = ".env"

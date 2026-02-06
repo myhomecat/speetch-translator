@@ -10,22 +10,13 @@ CHAT_LOG_DIR = "/home/pgchae/바탕화면/speetch-translator/chat-log"
 
 def save_chat_log(room_id: str, user_name: str, original_text: str, original_language: str,
                   translated_text: str, translated_language: str):
-    """채팅 로그를 JSON 파일에 저장"""
+    """채팅 로그를 JSONL 파일에 저장 (한 줄씩 append - 성능 최적화)"""
     try:
-        # 날짜별 파일명
+        # 날짜별 파일명 (JSONL 형식)
         today = datetime.now().strftime("%Y-%m-%d")
-        log_file = os.path.join(CHAT_LOG_DIR, f"chat_{today}.json")
+        log_file = os.path.join(CHAT_LOG_DIR, f"chat_{today}.jsonl")
 
-        # 기존 로그 읽기
-        logs = []
-        if os.path.exists(log_file):
-            with open(log_file, "r", encoding="utf-8") as f:
-                try:
-                    logs = json.load(f)
-                except json.JSONDecodeError:
-                    logs = []
-
-        # 새 로그 추가
+        # 새 로그 항목
         log_entry = {
             "timestamp": datetime.now().isoformat(),
             "room_id": room_id,
@@ -35,11 +26,10 @@ def save_chat_log(room_id: str, user_name: str, original_text: str, original_lan
             "translated_text": translated_text,
             "translated_language": translated_language
         }
-        logs.append(log_entry)
 
-        # 파일에 저장
-        with open(log_file, "w", encoding="utf-8") as f:
-            json.dump(logs, f, ensure_ascii=False, indent=2)
+        # 파일 끝에 한 줄 추가 (append 모드)
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
 
         print(f"[ChatLog] Saved: {user_name}: {original_text} -> {translated_text}")
     except Exception as e:

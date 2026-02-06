@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useAudioCapture } from "@/hooks/useAudioCapture";
@@ -28,6 +28,7 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<Map<string, RealtimeTranscript>>(new Map());
+  const realtimeTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [showParticipants, setShowParticipants] = useState(false);
 
@@ -99,14 +100,26 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
               isFinal: true,
               timestamp: new Date(),
             });
-            // 10초 후 제거 (테스트를 위해 연장)
-            setTimeout(() => {
+            // 10초 후 제거 (메모리 누수 방지: 타이머 관리)
+            const targetUserId = message.user_id; // 클로저에서 필요한 값만 캡처
+
+            // 기존 타이머가 있으면 취소
+            const existingTimer = realtimeTimersRef.current.get(targetUserId);
+            if (existingTimer) {
+              clearTimeout(existingTimer);
+            }
+
+            // 새 타이머 생성 및 저장
+            const timerId = setTimeout(() => {
               setRealtimeTranscripts((current) => {
                 const updated = new Map(current);
-                updated.delete(message.user_id);
+                updated.delete(targetUserId);
                 return updated;
               });
+              realtimeTimersRef.current.delete(targetUserId);
             }, 10000);
+
+            realtimeTimersRef.current.set(targetUserId, timerId);
           } else {
             // 말하는 중이면 텍스트 대체 (Soniox는 전체 텍스트를 보내므로 누적하지 않음)
             const prevText = existingRT?.isFinal ? "" : (existingRT?.text || "");
@@ -132,6 +145,16 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
         setError(message.message);
         break;
     }
+  }, []);
+
+  // 컴포넌트 언마운트 시 모든 타이머 정리
+  useEffect(() => {
+    return () => {
+      realtimeTimersRef.current.forEach((timerId) => {
+        clearTimeout(timerId);
+      });
+      realtimeTimersRef.current.clear();
+    };
   }, []);
 
   const handleAudioData = useCallback(
