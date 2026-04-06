@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:3000,http://192.168.0.113:3000,http://58.227.107.5:10112,http://58.227.107.5:3000,*"
 
     # Room settings
-    max_users_per_room: int = 3
+    max_users_per_room: int = 4
 
     # Audio settings
     input_sample_rate: int = 16000  # Client -> Server

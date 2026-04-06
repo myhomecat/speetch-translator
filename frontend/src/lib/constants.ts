@@ -14,5 +14,5 @@ export const TRANSLATION_MODES = [
   { value: "ja_to_ko", label: "일→한", description: "일본어 → 한국어" },
 ] as const;
 
-export const MAX_USERS_PER_ROOM = 3;
+export const MAX_USERS_PER_ROOM = 4;
 export const MAX_TRANSCRIPTS = 100;
