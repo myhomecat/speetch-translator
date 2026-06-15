@@ -3,17 +3,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import get_settings
 from .api import websocket, rooms
-from .core.whisper_session import preload_whisper_model
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: preload Whisper model
-    print("[Startup] Preloading Whisper model...")
-    preload_whisper_model()
-    print("[Startup] Whisper model loaded")
+    # Startup (Soniox 모드: Whisper preload 불필요 — 1GB EC2 OOM 방지)
+    print("[Startup] Speech Translator API started (Soniox mode)")
     yield
     # Shutdown
     print("[Shutdown] Cleaning up...")

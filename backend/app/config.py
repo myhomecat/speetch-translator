@@ -4,7 +4,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # Gemini API
-    gemini_api_key: str
+    gemini_api_key: str = ""
 
     # Vertex AI API Key (S2ST용)
     vertex_ai_api_key: str = ""

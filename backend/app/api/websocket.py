@@ -6,7 +6,7 @@ from datetime import datetime
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 # 채팅 로그 저장 경로
-CHAT_LOG_DIR = "/home/pgchae/바탕화면/speetch-translator/chat-log"
+CHAT_LOG_DIR = os.environ.get("CHAT_LOG_DIR", "/app/chat-log")
 
 def save_chat_log(room_id: str, user_name: str, original_text: str, original_language: str,
                   translated_text: str, translated_language: str):
