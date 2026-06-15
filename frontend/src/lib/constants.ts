@@ -1,5 +1,3 @@
-export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export const AUDIO_CONFIG = {
   INPUT_SAMPLE_RATE: 16000,  // Client -> Server

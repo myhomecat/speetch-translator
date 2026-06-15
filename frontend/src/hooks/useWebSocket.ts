@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState, useEffect } from "react";
-import { WS_URL } from "@/lib/constants";
+import { useConfig } from "@/lib/config-context";
 import type {
   TranslationMode,
   ServerMessage,
@@ -24,6 +24,7 @@ interface UseWebSocketOptions {
 const KEEPALIVE_INTERVAL = 20000;
 
 export function useWebSocket(options: UseWebSocketOptions) {
+  const { WS_URL } = useConfig();
   const {
     roomId,
     userName,

@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_URL } from "@/lib/constants";
+import { useConfig } from "@/lib/config-context";
 
 export default function Home() {
   const router = useRouter();
+  const { API_URL } = useConfig();
   const [userName, setUserName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [password, setPassword] = useState("");

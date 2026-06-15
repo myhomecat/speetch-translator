@@ -4,11 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-# 백엔드 주소는 빌드 타임에 번들에 박힘 (NEXT_PUBLIC_*)
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_WS_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+# 백엔드 주소는 런타임에 서버가 주입(config-context) → 빌드 인자 불필요
 RUN npm run build
 
 # ── 실행 (standalone) ──
