@@ -108,9 +108,14 @@ def test_translation_tokens_carry_speaker():
 
 def test_diarization_config_flag():
     session = make_session([])
+    # 기본값은 OFF (실 키 검증 전 prod 동작 보존)
+    config = session._get_config()
+    assert "enable_speaker_diarization" not in config
+    # env로 켜면 Soniox 설정에 포함되어야 함
+    session._settings.enable_speaker_diarization = True
     config = session._get_config()
     assert config.get("enable_speaker_diarization") is True
-    print("PASS: enable_speaker_diarization 설정 포함")
+    print("PASS: enable_speaker_diarization 기본 OFF / env ON 시 포함")
 
 
 if __name__ == "__main__":

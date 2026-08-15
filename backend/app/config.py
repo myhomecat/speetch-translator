@@ -35,7 +35,9 @@ class Settings(BaseSettings):
     # Soniox 설정
     use_soniox: bool = True  # True: Soniox + TTS, False: Gemini
     soniox_model: str = "stt-rt-v4"
-    enable_speaker_diarization: bool = True  # 화자 구분 (Soniox)
+    # 화자 구분 (Soniox). 실 API 키로 응답 형식 검증 후 env로 켤 것:
+    # ENABLE_SPEAKER_DIARIZATION=true
+    enable_speaker_diarization: bool = False
 
     # STT 엔진 선택: "soniox" | "local"
     # local: sherpa-onnx(ja) + sherpa 스트리밍/faster-whisper(ko) 완전 로컬 파이프라인
