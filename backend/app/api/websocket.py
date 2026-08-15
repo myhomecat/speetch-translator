@@ -43,6 +43,7 @@ from ..core.connection_manager import connection_manager
 from ..core.gemini_s2st_session import gemini_s2st_session_manager
 from ..core.whisper_session import whisper_session_manager
 from ..core.soniox_session import soniox_session_manager
+from ..core.local_stt_session import local_stt_session_manager
 from ..core.tts_session import tts_session_manager
 from ..core.text_translator import text_translator
 from ..models.room import TranslationMode
@@ -141,12 +142,69 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
         whisper_session = None
         soniox_session = None
         tts_session = None
+        local_session = None
 
-        if settings.use_soniox:
+        if settings.stt_engine == "local":
+            # === 로컬 STT 모드 (sherpa-onnx + faster-whisper, 완전 오프라인) ===
+            async def on_local_transcript(text: str, is_final: bool, language: str = None):
+                """로컬 STT 자막 콜백 — final일 때 LibreTranslate로 번역"""
+                translated_text = None
+                target_lang = None
+
+                if is_final and text.strip():
+                    try:
+                        translated_text, language, target_lang = await text_translator.translate(
+                            text, source_lang=language or "auto"
+                        )
+                    except Exception as e:
+                        print(f"[WS] Local translation error: {e}")
+
+                await connection_manager.broadcast_json(
+                    room_id=room_id,
+                    message=RealtimeTranscriptMessage(
+                        user_id=user_id,
+                        user_name=user_name,
+                        text=text,
+                        is_final=is_final,
+                        translated_text=translated_text,
+                        source_language=language,
+                        target_language=target_lang,
+                    )
+                )
+
+                if is_final and text.strip():
+                    await connection_manager.broadcast_json(
+                        room_id=room_id,
+                        message=TranscriptMessage(
+                            user_id=user_id,
+                            user_name=user_name,
+                            original_text=text,
+                            original_language=language or "auto",
+                            translated_text=translated_text,
+                            translated_language=target_lang,
+                        )
+                    )
+                    save_chat_log(room_id, user_name, text, language or "auto",
+                                 translated_text, target_lang)
+
+            try:
+                local_session = await local_stt_session_manager.create_session(
+                    room_id=room_id,
+                    user_id=user_id,
+                    translation_mode=translation_mode,
+                    on_transcript=on_local_transcript,
+                    on_error=on_error,
+                )
+                print(f"[WS] Local STT session created for user {user_id}")
+            except Exception as e:
+                print(f"[WS] Local STT session error: {e}")
+                traceback.print_exc()
+
+        elif settings.use_soniox:
             # === Soniox 모드 (STT + 번역 자막, 원본 음성 전달) ===
-            async def on_soniox_transcript(text: str, is_final: bool, translated_text: str = None):
+            async def on_soniox_transcript(text: str, is_final: bool, translated_text: str = None, speaker: int = None):
                 """Soniox 자막 콜백 - 실시간 텍스트 자막"""
-                print(f"[WS] on_soniox_transcript: text='{text}', is_final={is_final}, translated='{translated_text}'")
+                print(f"[WS] on_soniox_transcript: text='{text}', is_final={is_final}, translated='{translated_text}', speaker={speaker}")
 
                 source_lang = "ko" if translation_mode == TranslationMode.KO_TO_JA else "ja"
                 target_lang = "ja" if translation_mode == TranslationMode.KO_TO_JA else "ko"
@@ -163,7 +221,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                         is_final=is_final,
                         translated_text=translated_text,
                         source_language=source_lang,
-                        target_language=target_lang
+                        target_language=target_lang,
+                        speaker=speaker
                     )
                     await connection_manager.broadcast_json(
                         room_id=room_id,
@@ -178,7 +237,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                             original_text=text or "(음성 입력)",
                             original_language=source_lang,
                             translated_text=translated_text,
-                            translated_language=target_lang
+                            translated_language=target_lang,
+                            speaker=speaker
                         )
                         await connection_manager.broadcast_json(
                             room_id=room_id,
@@ -290,7 +350,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 settings.use_gemini_s2st = False
                 print(f"[WS] Falling back to Whisper + LibreTranslate")
 
-        if not settings.use_gemini_s2st or s2st_session is None:
+        if settings.stt_engine != "local" and soniox_session is None and s2st_session is None:
             # === Whisper + LibreTranslate 모드 (폴백) ===
             async def on_whisper_transcript(text: str, is_final: bool):
                 """Whisper 실시간 자막 콜백"""
@@ -344,8 +404,16 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 # Binary audio data
                 audio_bytes = message["bytes"]
 
+                # 로컬 STT 모드: 원본 음성 전달 + 로컬 STT
+                if local_session and local_session.is_connected:
+                    await connection_manager.broadcast_bytes(
+                        room_id=room_id,
+                        data=audio_bytes,
+                        exclude_user_id=user_id
+                    )
+                    await local_session.send_audio(audio_bytes)
                 # Soniox 모드: 원본 음성을 상대방에게 전달 + STT
-                if soniox_session and soniox_session.is_connected:
+                elif soniox_session and soniox_session.is_connected:
                     # 1. 원본 음성을 상대방에게 전달 (본인 제외)
                     await connection_manager.broadcast_bytes(
                         room_id=room_id,
@@ -374,6 +442,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                     await room_manager.update_user_mode(room_id, user_id, new_mode)
 
                     # 언어 모드 변경
+                    if local_session:
+                        local_session.change_language(new_mode)
                     if soniox_session:
                         soniox_session.change_language(new_mode)
                     if tts_session:
@@ -388,6 +458,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                     # Reset session for new recording turn
                     print(f"[WS] Resetting sessions for user {user_id}")
 
+                    if local_session:
+                        await local_session.reset()
                     if soniox_session:
                         await soniox_session.reset()
                     if s2st_session:
@@ -400,6 +472,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 elif msg_type == "end_audio_stream":
                     print(f"[WS] End audio stream signal for user {user_id}")
                     # Send end-of-turn signal
+                    if local_session:
+                        await local_session.end_turn()
                     if soniox_session:
                         await soniox_session.end_turn()
                     if s2st_session:
@@ -414,6 +488,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
         # Cleanup
         if user_id:
             # 세션 정리
+            await local_stt_session_manager.remove_session(room_id, user_id)
             await soniox_session_manager.remove_session(room_id, user_id)
             await tts_session_manager.remove_session(room_id, user_id)
             await gemini_s2st_session_manager.remove_session(room_id, user_id)

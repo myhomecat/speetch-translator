@@ -35,6 +35,19 @@ class Settings(BaseSettings):
     # Soniox 설정
     use_soniox: bool = True  # True: Soniox + TTS, False: Gemini
     soniox_model: str = "stt-rt-v4"
+    enable_speaker_diarization: bool = True  # 화자 구분 (Soniox)
+
+    # STT 엔진 선택: "soniox" | "local"
+    # local: sherpa-onnx(ja) + sherpa 스트리밍/faster-whisper(ko) 완전 로컬 파이프라인
+    stt_engine: str = "soniox"
+
+    # 로컬 STT 모델 경로
+    local_stt_ko_model_dir: str = ""
+    local_stt_ja_model_dir: str = ""
+    local_ko_final_model: str = "small"  # faster-whisper 모델 (ko 최종 자막 정정용)
+
+    # LibreTranslate
+    libretranslate_url: str = "http://localhost:5000"
 
     class Config:
         env_file = ".env"

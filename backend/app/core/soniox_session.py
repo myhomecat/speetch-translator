@@ -37,7 +37,7 @@ class SonioxSession:
         Args:
             user_id: 사용자 ID
             translation_mode: 번역 모드 (auto, ko_to_ja, ja_to_ko)
-            on_transcript: 자막 콜백 (text, is_final, translated_text)
+            on_transcript: 자막 콜백 (text, is_final, translated_text, speaker)
             on_error: 에러 콜백
         """
         self.user_id = user_id
@@ -58,6 +58,8 @@ class SonioxSession:
         # 임시 텍스트 버퍼 (is_final=False인 토큰, 덮어쓰기됨)
         self._pending_text = ""
         self._pending_translation = ""
+        # 현재 화자 번호 (diarization 활성 시 토큰의 speaker 필드)
+        self._current_speaker: Optional[int] = None
 
     def _get_config(self) -> dict:
         """Soniox WebSocket 설정 생성"""
@@ -85,7 +87,7 @@ class SonioxSession:
             }
             language_hints = ["ko", "ja"]
 
-        return {
+        config = {
             "api_key": self._settings.soniox_api_key,
             "model": self._settings.soniox_model,
             "audio_format": "s16le",  # 16-bit signed little-endian PCM
@@ -95,6 +97,9 @@ class SonioxSession:
             "translation": translation_config,
             "enable_endpoint_detection": True,
         }
+        if self._settings.enable_speaker_diarization:
+            config["enable_speaker_diarization"] = True
+        return config
 
     async def connect(self):
         """Soniox WebSocket 연결"""
@@ -216,7 +221,7 @@ class SonioxSession:
 
         if self.on_transcript and (full_text or full_translation):
             logger.info(f"[Soniox] Flushing buffers: text='{full_text[:50]}...', translation='{full_translation[:50]}...'")
-            await self.on_transcript(full_text, True, full_translation)
+            await self.on_transcript(full_text, True, full_translation, self._current_speaker)
 
         # 버퍼 초기화
         self._confirmed_text = ""
@@ -235,6 +240,7 @@ class SonioxSession:
         self._confirmed_translation = ""
         self._pending_text = ""
         self._pending_translation = ""
+        self._current_speaker = None
         logger.info(f"[Soniox] Session reset for user {self.user_id}")
 
     def change_language(self, mode: TranslationMode):
@@ -283,6 +289,22 @@ class SonioxSession:
                 is_final = token.get("is_final", False)
                 translation_status = token.get("translation_status", "none")
                 language = token.get("language", "")
+                speaker = token.get("speaker")
+
+                # 화자 전환 감지: 버퍼에 이전 화자의 발화가 남아 있으면
+                # 먼저 final로 내보내고 새 화자의 문장을 시작한다
+                if (
+                    speaker is not None
+                    and self._current_speaker is not None
+                    and speaker != self._current_speaker
+                    and (self._confirmed_text or self._pending_text)
+                ):
+                    logger.info(
+                        f"[Soniox] Speaker change {self._current_speaker} -> {speaker}, flushing"
+                    )
+                    await self._flush_buffers()
+                if speaker is not None:
+                    self._current_speaker = speaker
 
                 # 원본 텍스트 (translation_status가 "original"인 경우)
                 if translation_status == "original":
@@ -298,7 +320,7 @@ class SonioxSession:
                         # 전체 텍스트 = 확정 + 임시
                         full_text = self._confirmed_text + self._pending_text
                         if self.on_transcript:
-                            await self.on_transcript(full_text, False, None)
+                            await self.on_transcript(full_text, False, None, self._current_speaker)
                         logger.debug(f"[Soniox] Original: '{text}' (final={is_final}) -> full: '{full_text}'")
 
                 # 번역 텍스트 (translation_status가 "translation"인 경우)
@@ -315,7 +337,7 @@ class SonioxSession:
                         # 전체 번역 = 확정 + 임시
                         full_translation = self._confirmed_translation + self._pending_translation
                         if self.on_transcript:
-                            await self.on_transcript("", False, full_translation)
+                            await self.on_transcript("", False, full_translation, self._current_speaker)
                         logger.debug(f"[Soniox] Translation: '{text}' (final={is_final}) -> full: '{full_translation}'")
 
         # 세그먼트 완료
@@ -329,7 +351,8 @@ class SonioxSession:
                 await self.on_transcript(
                     full_text,
                     True,
-                    full_translation
+                    full_translation,
+                    self._current_speaker
                 )
             # 버퍼 초기화
             self._confirmed_text = ""

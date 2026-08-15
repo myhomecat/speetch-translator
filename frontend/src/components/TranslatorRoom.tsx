@@ -20,9 +20,10 @@ import type {
 interface TranslatorRoomProps {
   roomId: string;
   userName: string;
+  soloMode?: boolean; // 대면(1기기) 모드: 방코드/참가자 UI 숨김, 큰 자막
 }
 
-export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
+export function TranslatorRoom({ roomId, userName, soloMode = false }: TranslatorRoomProps) {
   const [translationMode, setTranslationMode] = useState<TranslationMode>("auto");
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -61,6 +62,7 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
               translatedText: message.translated_text || "",
               translatedLanguage: message.translated_language || "",
               timestamp: new Date(),
+              speaker: message.speaker ?? null,
             };
 
             const updated = [...prev, newTranscript];
@@ -99,6 +101,7 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
               targetLanguage: message.target_language,
               isFinal: true,
               timestamp: new Date(),
+              speaker: message.speaker ?? existingRT?.speaker ?? null,
             });
             // 10초 후 제거 (메모리 누수 방지: 타이머 관리)
             const targetUserId = message.user_id; // 클로저에서 필요한 값만 캡처
@@ -135,6 +138,7 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
               targetLanguage: message.target_language || existingRT?.targetLanguage || null,
               isFinal: false,
               timestamp: new Date(),
+              speaker: message.speaker ?? existingRT?.speaker ?? null,
             });
           }
           return newMap;
@@ -249,11 +253,17 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
         <div className="flex items-center justify-between max-w-6xl mx-auto">
           <div>
             <h1 className="text-xl font-bold text-gray-900">
-              음성 번역 채팅방
+              {soloMode ? "대면 번역" : "음성 번역 채팅방"}
             </h1>
-            <p className="text-sm text-gray-500">
-              방 코드: <span className="font-mono font-medium">{roomId}</span>
-            </p>
+            {soloMode ? (
+              <p className="text-sm text-gray-500">
+                기기를 가운데 두고 말하면 한↔일 자동 번역됩니다
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500">
+                방 코드: <span className="font-mono font-medium">{roomId}</span>
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -303,6 +313,7 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
             transcripts={transcripts}
             realtimeTranscripts={realtimeTranscripts}
             currentUserId={userId}
+            soloMode={soloMode}
           />
         </div>
 
@@ -317,19 +328,23 @@ export function TranslatorRoom({ roomId, userName }: TranslatorRoomProps) {
       {/* 하단 고정 바 */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-20">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* 참가자 토글 버튼 */}
-          <button
-            onClick={() => setShowParticipants(!showParticipants)}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors
-              ${showParticipants ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}
-            `}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-            </svg>
-            <span>{users.length}/3</span>
-          </button>
+          {/* 참가자 토글 버튼 (솔로 모드에서는 숨김) */}
+          {soloMode ? (
+            <div className="w-24" />
+          ) : (
+            <button
+              onClick={() => setShowParticipants(!showParticipants)}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors
+                ${showParticipants ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}
+              `}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+              <span>{users.length}/3</span>
+            </button>
+          )}
 
           {/* 마이크 버튼 */}
           <button

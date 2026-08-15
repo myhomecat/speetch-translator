@@ -12,9 +12,35 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [isStartingSolo, setIsStartingSolo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const CORRECT_PASSWORD = "arisa";
+
+  // 바로 번역하기: 1인 방을 만들어 즉시 대면(솔로) 모드로 입장
+  const handleQuickTranslate = async () => {
+    if (password !== CORRECT_PASSWORD) {
+      setError("비밀번호가 틀렸습니다");
+      return;
+    }
+
+    setIsStartingSolo(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_URL}/api/rooms/create`, {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      sessionStorage.setItem("userName", userName.trim() || "나");
+      router.push(`/room/${data.room_id}?mode=solo`);
+    } catch (err) {
+      setError("시작에 실패했습니다. 서버 연결을 확인해주세요.");
+    } finally {
+      setIsStartingSolo(false);
+    }
+  };
 
   const handleCreateRoom = async () => {
     if (!userName.trim()) {
@@ -131,10 +157,22 @@ export default function Home() {
             />
           </div>
 
+          {/* Quick Translate (대면 솔로 모드) */}
+          <button
+            onClick={handleQuickTranslate}
+            disabled={isCreating || isJoining || isStartingSolo}
+            className="w-full bg-emerald-500 text-white py-4 rounded-lg font-bold text-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {isStartingSolo ? "시작 중..." : "⚡ 바로 번역하기"}
+          </button>
+          <p className="text-xs text-gray-400 text-center -mt-3">
+            기기 한 대를 가운데 두고 대화하면 한↔일 자동 번역됩니다
+          </p>
+
           {/* Create Room */}
           <button
             onClick={handleCreateRoom}
-            disabled={isCreating || isJoining}
+            disabled={isCreating || isJoining || isStartingSolo}
             className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {isCreating ? "생성 중..." : "새 방 만들기"}

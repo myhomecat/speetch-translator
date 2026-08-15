@@ -10,7 +10,7 @@ class TextTranslator:
     """LibreTranslate를 사용한 텍스트 번역기"""
 
     def __init__(self):
-        self._base_url = "http://localhost:5000"
+        self._base_url = get_settings().libretranslate_url
         self._client = None
 
     def _get_client(self):

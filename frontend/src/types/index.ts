@@ -44,6 +44,7 @@ export interface TranscriptMessage {
   original_language: string;
   translated_text: string | null;
   translated_language: string | null;
+  speaker?: number | null; // 화자 번호 (diarization)
 }
 
 export interface ErrorMessage {
@@ -61,6 +62,7 @@ export interface RealtimeTranscriptMessage {
   translated_text: string | null;
   source_language: string | null;
   target_language: string | null;
+  speaker?: number | null; // 화자 번호 (diarization)
 }
 
 export type ServerMessage =
@@ -93,6 +95,7 @@ export interface Transcript {
   translatedText: string;
   translatedLanguage: string;
   timestamp: Date;
+  speaker?: number | null; // 화자 번호 (diarization)
 }
 
 export interface RealtimeTranscript {
@@ -104,6 +107,7 @@ export interface RealtimeTranscript {
   targetLanguage: string | null;
   isFinal: boolean;
   timestamp: Date;
+  speaker?: number | null; // 화자 번호 (diarization)
 }
 
 export interface RoomState {

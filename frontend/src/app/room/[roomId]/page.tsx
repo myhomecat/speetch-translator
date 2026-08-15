@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { TranslatorRoom } from "@/components/TranslatorRoom";
 
-export default function RoomPage() {
+function RoomPageInner() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const roomId = params.roomId as string;
+  const soloMode = searchParams.get("mode") === "solo";
 
   const [userName, setUserName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,6 +19,12 @@ export default function RoomPage() {
     const storedName = sessionStorage.getItem("userName");
 
     if (!storedName) {
+      if (soloMode) {
+        // 솔로(대면) 모드는 이름 없이도 바로 시작
+        setUserName("나");
+        setIsLoading(false);
+        return;
+      }
       // Redirect to home if no user name
       router.push("/");
       return;
@@ -24,7 +32,7 @@ export default function RoomPage() {
 
     setUserName(storedName);
     setIsLoading(false);
-  }, [router]);
+  }, [router, soloMode]);
 
   if (isLoading) {
     return (
@@ -41,5 +49,13 @@ export default function RoomPage() {
     return null;
   }
 
-  return <TranslatorRoom roomId={roomId} userName={userName} />;
+  return <TranslatorRoom roomId={roomId} userName={userName} soloMode={soloMode} />;
+}
+
+export default function RoomPage() {
+  return (
+    <Suspense fallback={null}>
+      <RoomPageInner />
+    </Suspense>
+  );
 }

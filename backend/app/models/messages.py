@@ -49,6 +49,7 @@ class TranscriptMessage(BaseMessage):
     original_language: str
     translated_text: Optional[str] = None
     translated_language: Optional[str] = None
+    speaker: Optional[int] = None  # 화자 번호 (diarization, 솔로 모드)
 
 
 class ErrorMessage(BaseMessage):
@@ -91,3 +92,4 @@ class RealtimeTranscriptMessage(BaseMessage):
     translated_text: Optional[str] = None  # final일 때만 번역 포함
     source_language: Optional[str] = None  # 감지된 원본 언어
     target_language: Optional[str] = None  # 번역 대상 언어
+    speaker: Optional[int] = None  # 화자 번호 (diarization, 솔로 모드)

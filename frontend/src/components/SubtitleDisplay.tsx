@@ -7,13 +7,17 @@ interface SubtitleDisplayProps {
   transcripts: Transcript[];
   realtimeTranscripts: Map<string, RealtimeTranscript>;
   currentUserId: string | null;
+  soloMode?: boolean; // 대면 모드: 큰 자막 + 화자 라벨 중심 표시
 }
 
 export function SubtitleDisplay({
   transcripts,
   realtimeTranscripts,
   currentUserId,
+  soloMode = false,
 }: SubtitleDisplayProps) {
+  // 대면 모드는 멀리서도 읽히도록 자막을 키운다
+  const textSize = soloMode ? "text-xl md:text-2xl" : "text-sm";
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new transcripts arrive or realtime updates
@@ -50,6 +54,11 @@ export function SubtitleDisplay({
             className={`flex flex-col ${isCurrentUser ? "items-end" : "items-start"}`}
           >
             <span className="text-xs text-gray-500 mb-1">
+              {transcript.speaker != null && (
+                <span className={`mr-1 px-1.5 py-0.5 rounded font-medium ${getSpeakerColor(transcript.speaker)}`}>
+                  화자 {transcript.speaker}
+                </span>
+              )}
               {transcript.userName}
             </span>
 
@@ -60,7 +69,7 @@ export function SubtitleDisplay({
               `}
             >
               {transcript.originalText && (
-                <p className="text-sm text-gray-800">
+                <p className={`${textSize} text-gray-800`}>
                   <span className="text-xs text-gray-500 mr-1">
                     [{getLanguageLabel(transcript.originalLanguage)}]
                   </span>
@@ -69,7 +78,7 @@ export function SubtitleDisplay({
               )}
 
               {transcript.translatedText && (
-                <p className="text-sm text-blue-700 mt-1 pt-1 border-t border-gray-200">
+                <p className={`${textSize} text-blue-700 mt-1 pt-1 border-t border-gray-200`}>
                   <span className="text-xs text-blue-500 mr-1">
                     [{getLanguageLabel(transcript.translatedLanguage)}]
                   </span>
@@ -95,6 +104,11 @@ export function SubtitleDisplay({
             className={`flex flex-col ${isCurrentUser ? "items-end" : "items-start"}`}
           >
             <span className="text-xs text-gray-500 mb-1">
+              {rt.speaker != null && (
+                <span className={`mr-1 px-1.5 py-0.5 rounded font-medium ${getSpeakerColor(rt.speaker)}`}>
+                  화자 {rt.speaker}
+                </span>
+              )}
               {rt.userName}
               {!rt.isFinal && (
                 <span className="ml-1 text-green-500 animate-pulse">말하는 중...</span>
@@ -116,7 +130,7 @@ export function SubtitleDisplay({
             >
               {/* 원본 텍스트 (있는 경우) */}
               {rt.text && (
-                <p className={`text-sm ${rt.isFinal ? "text-gray-800" : "text-gray-600 italic"}`}>
+                <p className={`${textSize} ${rt.isFinal ? "text-gray-800" : "text-gray-600 italic"}`}>
                   {rt.sourceLanguage && (
                     <span className="text-xs text-gray-500 mr-1">
                       [{getLanguageLabel(rt.sourceLanguage)}]
@@ -128,7 +142,7 @@ export function SubtitleDisplay({
 
               {/* 번역된 텍스트 (실시간으로 표시) */}
               {rt.translatedText && (
-                <p className={`text-sm ${rt.isFinal ? "text-blue-700" : "text-green-600 italic"} ${rt.text ? "mt-1 pt-1 border-t border-gray-200" : ""}`}>
+                <p className={`${textSize} ${rt.isFinal ? "text-blue-700" : "text-green-600 italic"} ${rt.text ? "mt-1 pt-1 border-t border-gray-200" : ""}`}>
                   {rt.targetLanguage && (
                     <span className={`text-xs mr-1 ${rt.isFinal ? "text-blue-500" : "text-green-500"}`}>
                       [{getLanguageLabel(rt.targetLanguage)}]
@@ -154,6 +168,16 @@ export function SubtitleDisplay({
       })}
     </div>
   );
+}
+
+function getSpeakerColor(speaker: number): string {
+  const colors = [
+    "bg-purple-100 text-purple-700",
+    "bg-amber-100 text-amber-700",
+    "bg-teal-100 text-teal-700",
+    "bg-rose-100 text-rose-700",
+  ];
+  return colors[Math.abs(speaker) % colors.length];
 }
 
 function getLanguageLabel(lang: string): string {

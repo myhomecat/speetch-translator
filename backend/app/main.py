@@ -10,7 +10,14 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup (Soniox 모드: Whisper preload 불필요 — 1GB EC2 OOM 방지)
-    print("[Startup] Speech Translator API started (Soniox mode)")
+    if settings.stt_engine == "local":
+        # 로컬 엔진: 첫 접속 지연 방지를 위해 기동 시 모델 프리로드
+        from .core.local_stt_session import preload_local_models
+        print("[Startup] Preloading local STT models...")
+        await preload_local_models()
+        print("[Startup] Speech Translator API started (local STT mode)")
+    else:
+        print("[Startup] Speech Translator API started (Soniox mode)")
     yield
     # Shutdown
     print("[Shutdown] Cleaning up...")
